@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f0c29">
+<title>SamPerformance</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background-attachment: fixed;
+    color:#fff; min-height:100vh;
+    padding: calc(env(safe-area-inset-top, 0px) + 60px) 20px calc(env(safe-area-inset-bottom, 0px) + 30px) 20px;
+  }
+  .header { text-align:center; margin-bottom:25px; }
+  .header h1 {
+    font-size:28px; font-weight:800; line-height:1.2;
+    background: linear-gradient(90deg,#00f2fe,#4facfe,#a17fe0);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .header p { font-size:12px; opacity:.7; margin-top:6px; }
+  .status-card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:20px; padding:20px; margin-bottom:20px;
+    text-align:center;
+  }
+  .mode-badge {
+    display:inline-block; padding:10px 25px; border-radius:50px;
+    font-weight:700; font-size:18px; margin-top:8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+  .mode-gaming { background: linear-gradient(135deg,#ff4e50,#f9d423); color:#000; }
+  .mode-balance { background: linear-gradient(135deg,#4facfe,#00f2fe); color:#000; }
+  .mode-battery { background: linear-gradient(135deg,#11998e,#38ef7d); color:#000; }
+  .toggle-row {
+    display:flex; justify-content:space-between; align-items:center;
+    background: rgba(255,255,255,0.08); padding:15px 20px; border-radius:15px;
+    margin-bottom:12px; border:1px solid rgba(255,255,255,0.1);
+  }
+  .toggle-row .label { font-size:15px; font-weight:600; }
+  .toggle-row .sublabel { font-size:11px; opacity:.6; margin-top:2px; }
+  .switch { position:relative; width:50px; height:28px; flex-shrink:0; }
+  .switch input { display:none; }
+  .slider {
+    position:absolute; inset:0; background:#444; border-radius:34px; cursor:pointer; transition:.3s;
+  }
+  .slider:before {
+    content:""; position:absolute; height:22px; width:22px; left:3px; top:3px;
+    background:white; border-radius:50%; transition:.3s;
+  }
+  input:checked + .slider { background: linear-gradient(135deg,#4facfe,#00f2fe); }
+  input:checked + .slider:before { transform: translateX(22px); }
+  .btn-row { display:flex; gap:10px; margin-top:15px; }
+  .btn {
+    flex:1; padding:14px 8px; border-radius:15px; border:none;
+    font-size:14px; font-weight:700; cursor:pointer; color:#fff;
+    background: rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+    transition: transform .15s, background .2s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn.active-gaming { background: linear-gradient(135deg,#ff4e50,#f9d423); color:#000; border:none; }
+  .btn.active-balance { background: linear-gradient(135deg,#4facfe,#00f2fe); color:#000; border:none; }
+  .btn.active-battery { background: linear-gradient(135deg,#11998e,#38ef7d); color:#000; border:none; }
+  .section-title {
+    font-size:13px; text-transform:uppercase; letter-spacing:1.5px;
+    opacity:.6; margin:25px 0 10px 5px;
+  }
+  .info-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  }
+  .info-tile {
+    background: rgba(255,255,255,0.06); padding:15px; border-radius:14px;
+    text-align:center; border:1px solid rgba(255,255,255,0.08);
+  }
+  .info-tile .v { font-size:20px; font-weight:800; }
+  .info-tile .l { font-size:11px; opacity:.6; margin-top:3px; }
+  .footer { text-align:center; margin-top:30px; opacity:.5; font-size:11px; }
+  .footer .heart { color:#ff4e50; }
+  .toast {
+    position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px);
+    background:rgba(0,0,0,0.85); color:#fff; padding:12px 24px; border-radius:30px;
+    font-size:13px; transition:transform .3s; z-index:999;
+    border:1px solid rgba(255,255,255,0.2);
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ SamPerformance</h1>
+  <p>Smart Gaming &amp; Battery Optimizer</p>
+</div>
+
+<div class="status-card">
+  <div style="font-size:12px;opacity:.7;letter-spacing:1px;">CURRENT MODE</div>
+  <div id="modeBadge" class="mode-badge mode-balance">BALANCE</div>
+  <div style="font-size:11px;opacity:.5;margin-top:10px;" id="lastUpdate">Auto-detecting...</div>
+  <div style="font-size:11px;opacity:.6;margin-top:6px;" id="fgApp"></div>
+</div>
+
+<div class="toggle-row">
+  <div>
+    <div class="label">Module Enabled</div>
+    <div class="sublabel">Master switch for all modes</div>
+  </div>
+  <label class="switch">
+    <input type="checkbox" id="enabledSwitch" checked>
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="section-title">Quick Actions</div>
+<div class="btn-row">
+  <button class="btn" id="btnGaming" onclick="forceMode('gaming')">🎮 Gaming</button>
+  <button class="btn" id="btnBalance" onclick="forceMode('balance')">⚖️ Balance</button>
+  <button class="btn" id="btnBattery" onclick="forceMode('battery')">🔋 Battery</button>
+</div>
+
+<div class="section-title">Live Stats</div>
+<div class="info-grid">
+  <div class="info-tile">
+    <div class="v" id="bgCount">2</div>
+    <div class="l">Max BG Apps</div>
+  </div>
+  <div class="info-tile">
+    <div class="v" id="gameCount">20</div>
+    <div class="l">Games Tracked</div>
+  </div>
+  <div class="info-tile">
+    <div class="v" id="whiteCount">15</div>
+    <div class="l">Whitelisted</div>
+  </div>
+  <div class="info-tile">
+    <div class="v" id="refresh">Auto</div>
+    <div class="l">Refresh Hz</div>
+  </div>
+</div>
+
+<div class="section-title">Configuration</div>
+<div class="toggle-row" onclick="openFile('games.txt')" style="cursor:pointer;">
+  <div>
+    <div class="label">📝 Games List</div>
+    <div class="sublabel">/data/adb/sam_performance/games.txt</div>
+  </div>
+  <div style="opacity:.5;font-size:20px;">›</div>
+</div>
+<div class="toggle-row" onclick="openFile('battery_whitelist.txt')" style="cursor:pointer;">
+  <div>
+    <div class="label">✅ Battery Whitelist</div>
+    <div class="sublabel">Apps allowed in battery mode</div>
+  </div>
+  <div style="opacity:.5;font-size:20px;">›</div>
+</div>
+
+<div class="footer">
+  Made with <span class="heart">♥</span> by <b>Ami Sayem</b><br>
+  SamPerformance v1.0.0
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============================================================
+  // KSU / MMRL bridge for executing root commands
+  // ============================================================
+  let cbCounter = 0;
+
+  function exec(cmd, cb) {
+    // KernelSU / MMRL WebUI bridge
+    if (window.ksu && typeof window.ksu.exec === 'function') {
+      const cbName = "execCb_" + (++cbCounter);
+      window[cbName] = function(code, stdout, stderr) {
+        if (cb) cb((stdout || "").trim(), code);
+        delete window[cbName];
+      };
+      try {
+        window.ksu.exec(cmd, "{}", cbName);
+      } catch (e) {
+        console.error(e);
+        if (cb) cb("", -1);
+      }
+    } else {
+      console.log("EXEC (preview):", cmd);
+      if (cb) cb("", 0);
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
+
+  function setActiveButton(mode) {
+    ["Gaming","Balance","Battery"].forEach(m => {
+      const btn = document.getElementById("btn" + m);
+      btn.className = "btn";
+      if (m.toLowerCase() === mode) {
+        btn.className = "btn active-" + mode;
+      }
+    });
+  }
+
+  function updateMode() {
+    exec("cat /data/adb/sam_performance/current_mode 2>/dev/null", function(mode) {
+      mode = (mode || "balance").trim();
+      const badge = document.getElementById("modeBadge");
+      badge.className = "mode-badge mode-" + mode;
+      badge.textContent = mode.toUpperCase();
+      setActiveButton(mode);
+      document.getElementById("lastUpdate").textContent = "Updated: " + new Date().toLocaleTimeString();
+    });
+
+    // Refresh rate - try multiple sources
+    exec("settings get system peak_refresh_rate 2>/dev/null", function(hz) {
+      hz = (hz || "").trim();
+      if (hz && hz !== "null") {
+        document.getElementById("refresh").textContent = Math.round(parseFloat(hz)) + "Hz";
+      } else {
+        // Fallback: get current display refresh rate
+        exec("dumpsys display 2>/dev/null | grep -oE 'fps=[0-9.]+' | head -1 | grep -oE '[0-9.]+'", function(fps) {
+          fps = (fps || "").trim();
+          document.getElementById("refresh").textContent = fps ? Math.round(parseFloat(fps)) + "Hz" : "Auto";
+        });
+      }
+    });
+
+    // Foreground app (current detection)
+    exec("dumpsys window 2>/dev/null | grep -E 'mCurrentFocus' | head -1 | grep -oE '[a-zA-Z0-9._]+/[a-zA-Z0-9._]+' | cut -d'/' -f1", function(app) {
+      app = (app || "").trim();
+      document.getElementById("fgApp").textContent = app ? "📱 " + app : "";
+    });
+
+    exec("wc -l < /data/adb/sam_performance/games.txt 2>/dev/null", function(n) {
+      n = (n || "").trim();
+      if (n) document.getElementById("gameCount").textContent = n;
+    });
+    exec("wc -l < /data/adb/sam_performance/battery_whitelist.txt 2>/dev/null", function(n) {
+      n = (n || "").trim();
+      if (n) document.getElementById("whiteCount").textContent = n;
+    });
+    exec("cat /data/adb/sam_performance/max_bg_apps 2>/dev/null", function(n) {
+      n = (n || "").trim();
+      if (n) document.getElementById("bgCount").textContent = n;
+    });
+  }
+
+  function forceMode(mode) {
+    showToast("Switching to " + mode.toUpperCase() + "...");
+    exec("echo " + mode + " > /data/adb/sam_performance/current_mode && sh /data/adb/modules/sam_performance/scripts/mode_" + mode + ".sh", function() {
+      setTimeout(updateMode, 500);
+    });
+  }
+
+  function openFile(name) {
+    showToast("Path: /data/adb/sam_performance/" + name);
+  }
+
+  document.getElementById("enabledSwitch").addEventListener("change", function(e) {
+    exec("echo " + (e.target.checked ? "1" : "0") + " > /data/adb/sam_performance/enabled");
+    showToast(e.target.checked ? "Module enabled" : "Module disabled");
+  });
+
+  // Initial load + auto refresh
+  updateMode();
+  setInterval(updateMode, 4000);
+
+  // Load current enabled state
+  exec("cat /data/adb/sam_performance/enabled 2>/dev/null", function(v) {
+    document.getElementById("enabledSwitch").checked = ((v || "1").trim() === "1");
+  });
+</script>
+
+</body>
+</html>
