@@ -1,0 +1,7 @@
+id=sam_performance
+name=SamPerformance
+version=v1.1.0
+versionCode=110
+author=Ami Sayem
+description=[Universal] Smart gaming/battery optimizer. Auto-detects chipset (Snapdragon/MediaTek/Exynos/Unisoc/Tensor) and GPU (Adreno/Mali/PowerVR). Auto-switches between Gaming/Balance/Battery modes based on what you're doing. Created by Ami Sayem.
+updateJson=
